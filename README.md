@@ -27,7 +27,7 @@
 ### 🏁 Multi-Lane Racing
 - Support for **1-4 simultaneous lanes**
 - **Independent tracking** for each lane with color coding
-- **Customizable lane names and colors**
+- **Custom racer names and colors** - personalize each lane
 - **Real-time position tracking** - see who's winning
 
 ### ⏱️ Timing & Statistics
@@ -36,6 +36,7 @@
 - **Live delta display** - difference from best lap
 - **Lap time progression charts** with visual trends
 - **Automatic outlier filtering** - extreme times (crashes, off-track) are filtered from charts using IQR method
+- **Statistics dashboard** - all-time bests, total laps, racing time, racer leaderboard
 - **Race history** with all-time records
 
 ### 🎮 Race Modes
@@ -60,6 +61,7 @@
 - **Export to CSV** for analysis
 - **Share results** via native share or clipboard
 - **Session history** with race summaries
+- **Auto-recovery** - resume interrupted races after page refresh
 - **Local storage** - your data stays on your device
 
 ### ⚡ Performance Optimizations
