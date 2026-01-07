@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { formatTimeShort, LaneConfig, LaneState, calculateSpeed, formatSpeed } from '@/lib/lapTimer';
 import { Trophy, TrendingUp, Timer, Gauge } from 'lucide-react';
 
@@ -16,8 +16,8 @@ interface LaneCardProps {
   trackLength: number;
 }
 
-// Memoized lane card for performance
-const LaneCard = memo(function LaneCard({ lane, state, isRunning, trackLength }: LaneCardProps) {
+// Lane card (no memo: laneStates may be mutated in-place upstream)
+function LaneCard({ lane, state, isRunning, trackLength }: LaneCardProps) {
   const lastLap = state?.laps.length > 0 ? state.laps[state.laps.length - 1].lapTime : null;
   const lapsCount = state?.laps.length || 0;
   
@@ -129,9 +129,9 @@ const LaneCard = memo(function LaneCard({ lane, state, isRunning, trackLength }:
       </div>
     </div>
   );
-});
+}
 
-export const TimerDisplay = memo(function TimerDisplay({ 
+export function TimerDisplay({ 
   lanes, 
   laneStates, 
   isRunning, 
@@ -169,4 +169,4 @@ export const TimerDisplay = memo(function TimerDisplay({
       })}
     </div>
   );
-});
+}
