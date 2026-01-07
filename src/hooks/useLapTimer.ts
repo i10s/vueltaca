@@ -15,12 +15,21 @@ import {
   calibrateThreshold,
 } from '@/lib/lapTimer';
 
+export interface BestLapEvent {
+  laneId: number;
+  lapTime: number;
+  laneName: string;
+  laneColor: string;
+}
+
 interface UseLapTimerReturn {
   state: TimerState;
   lanes: LaneConfig[];
   config: TimerConfig;
   isCalibrating: boolean;
   triggerFlashes: boolean[];
+  onLapDetected: React.MutableRefObject<((laneId: number, isBestLap: boolean) => void) | null>;
+  onBestLap: React.MutableRefObject<((event: BestLapEvent) => void) | null>;
   
   start: () => void;
   stop: () => void;
@@ -50,6 +59,10 @@ export function useLapTimer(): UseLapTimerReturn {
   const startTimeRef = useRef<number | null>(null);
   const calibrationSamplesRef = useRef<number[][]>([[], [], [], []]);
   const calibrationStartRef = useRef<number>(0);
+  
+  // Event callbacks
+  const onLapDetectedRef = useRef<((laneId: number, isBestLap: boolean) => void) | null>(null);
+  const onBestLapRef = useRef<((event: BestLapEvent) => void) | null>(null);
   
   // Force re-render trigger
   const [, forceUpdate] = useState({});
@@ -213,10 +226,25 @@ export function useLapTimer(): UseLapTimerReturn {
           
           laneState.laps.push(newLap);
           
-          // Update stats
+          // Update stats and check for best lap
           const times = laneState.laps.map(l => l.lapTime);
+          const prevBest = laneState.bestLap;
           laneState.bestLap = Math.min(...times);
           laneState.avgLap = times.reduce((a, b) => a + b, 0) / times.length;
+          
+          const isBestLap = prevBest === null || lapTime < prevBest;
+          
+          // Trigger callbacks
+          onLapDetectedRef.current?.(i, isBestLap);
+          
+          if (isBestLap && lanes[i]) {
+            onBestLapRef.current?.({
+              laneId: i,
+              lapTime,
+              laneName: lanes[i].name,
+              laneColor: lanes[i].color,
+            });
+          }
           
           showTriggerFlash(i);
           stateChanged = true;
@@ -265,6 +293,8 @@ export function useLapTimer(): UseLapTimerReturn {
     config,
     isCalibrating,
     triggerFlashes,
+    onLapDetected: onLapDetectedRef,
+    onBestLap: onBestLapRef,
     start,
     stop,
     reset,
