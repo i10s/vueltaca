@@ -32,6 +32,7 @@ export interface TimerConfig {
   targetLaps: number;
   targetTime: number; // in seconds
   voiceEnabled: boolean;
+  trackLength: number; // in meters
 }
 
 export interface LaneState {
@@ -110,7 +111,21 @@ const DEFAULT_CONFIG: TimerConfig = {
   targetLaps: 10,
   targetTime: 300,
   voiceEnabled: false,
+  trackLength: 5.5, // Default Scalextric track ~5.5m
 };
+
+// Calculate speed in km/h from lap time and track length
+export function calculateSpeed(lapTimeMs: number, trackLengthMeters: number): number {
+  if (lapTimeMs <= 0 || trackLengthMeters <= 0) return 0;
+  const lapTimeHours = lapTimeMs / 1000 / 3600;
+  const trackLengthKm = trackLengthMeters / 1000;
+  return trackLengthKm / lapTimeHours;
+}
+
+export function formatSpeed(speed: number): string {
+  if (speed <= 0 || !isFinite(speed)) return '--';
+  return speed.toFixed(1);
+}
 
 export function loadConfig(): { lanes: LaneConfig[]; timer: TimerConfig } {
   try {

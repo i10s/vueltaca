@@ -1,6 +1,6 @@
 import React from 'react';
-import { Download, Trophy, Clock, Zap } from 'lucide-react';
-import { LapData, LaneConfig, formatTimeShort, exportToCSV } from '@/lib/lapTimer';
+import { Download, Trophy, Clock, Zap, Gauge } from 'lucide-react';
+import { LapData, LaneConfig, formatTimeShort, exportToCSV, calculateSpeed, formatSpeed } from '@/lib/lapTimer';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -12,9 +12,10 @@ import {
 interface LapListProps {
   laps: LapData[];
   lanes: LaneConfig[];
+  trackLength?: number;
 }
 
-export function LapList({ laps, lanes }: LapListProps) {
+export function LapList({ laps, lanes, trackLength = 5.5 }: LapListProps) {
   // Find best lap per lane
   const bestPerLane: Record<number, number> = {};
   laps.forEach(lap => {
@@ -108,8 +109,16 @@ export function LapList({ laps, lanes }: LapListProps) {
                     </div>
                   </div>
 
-                  {/* Right: Time + Best indicator */}
-                  <div className="flex items-center gap-2">
+                  {/* Right: Speed + Time + Best indicator */}
+                  <div className="flex items-center gap-3">
+                    {/* Speed */}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Gauge className="w-3 h-3" />
+                      <span className="font-mono">
+                        {formatSpeed(calculateSpeed(lap.lapTime, trackLength))} km/h
+                      </span>
+                    </div>
+                    
                     {isBest && (
                       <Trophy className="w-4 h-4 text-accent animate-pulse" />
                     )}
