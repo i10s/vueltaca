@@ -139,6 +139,15 @@ export const TimerDisplay = memo(function TimerDisplay({
 }: TimerDisplayProps) {
   const enabledLanes = useMemo(() => lanes.filter(l => l.enabled), [lanes]);
 
+  // Create safe lane state lookup - ensure we always have valid state for each lane
+  const laneStateMap = useMemo(() => {
+    const map: Record<number, LaneState> = {};
+    laneStates.forEach((state, index) => {
+      if (state) map[index] = state;
+    });
+    return map;
+  }, [laneStates]);
+
   if (enabledLanes.length === 0) {
     return (
       <div className="racing-card rounded-xl p-4 text-center">
@@ -149,15 +158,19 @@ export const TimerDisplay = memo(function TimerDisplay({
 
   return (
     <div className="space-y-3">
-      {enabledLanes.map((lane) => (
-        <LaneCard
-          key={lane.id}
-          lane={lane}
-          state={laneStates[lane.id]}
-          isRunning={isRunning}
-          trackLength={trackLength}
-        />
-      ))}
+      {enabledLanes.map((lane) => {
+        const state = laneStateMap[lane.id];
+        if (!state) return null;
+        return (
+          <LaneCard
+            key={lane.id}
+            lane={lane}
+            state={state}
+            isRunning={isRunning}
+            trackLength={trackLength}
+          />
+        );
+      })}
     </div>
   );
 });
