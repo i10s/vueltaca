@@ -90,45 +90,46 @@ export function useCamera(): UseCameraReturn {
       
       streamRef.current = newStream;
       
+      // Wait a tick for video element to be available if needed
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       if (videoRef.current) {
         console.log('[Camera] Attaching stream to video element...');
         videoRef.current.srcObject = newStream;
         
         // Wait for video to be ready
-        await new Promise<void>((resolve, reject) => {
+        await new Promise<void>((resolve) => {
           const video = videoRef.current!;
           
-          const onLoadedMetadata = () => {
-            console.log('[Camera] Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-            video.removeEventListener('loadedmetadata', onLoadedMetadata);
-            video.removeEventListener('error', onError);
+          const onCanPlay = () => {
+            console.log('[Camera] Video can play:', video.videoWidth, 'x', video.videoHeight);
+            video.removeEventListener('canplay', onCanPlay);
             resolve();
           };
           
-          const onError = (e: Event) => {
-            console.error('[Camera] Video error:', e);
-            video.removeEventListener('loadedmetadata', onLoadedMetadata);
-            video.removeEventListener('error', onError);
-            reject(new Error('Video element error'));
-          };
+          // If already ready
+          if (video.readyState >= 3) {
+            console.log('[Camera] Video already ready');
+            resolve();
+            return;
+          }
           
-          video.addEventListener('loadedmetadata', onLoadedMetadata);
-          video.addEventListener('error', onError);
+          video.addEventListener('canplay', onCanPlay);
           
           // Timeout fallback
           setTimeout(() => {
-            if (video.readyState >= 1) {
-              console.log('[Camera] Video ready via timeout, readyState:', video.readyState);
-              resolve();
-            }
-          }, 2000);
+            console.log('[Camera] Video ready via timeout, readyState:', video.readyState);
+            video.removeEventListener('canplay', onCanPlay);
+            resolve();
+          }, 3000);
         });
         
         console.log('[Camera] Playing video...');
         await videoRef.current.play();
         console.log('[Camera] Video playing successfully');
       } else {
-        console.warn('[Camera] videoRef.current is null!');
+        console.warn('[Camera] videoRef.current is null, will retry...');
+        // Store stream but don't set error - the component will attach it when ready
       }
       
       setStream(newStream);
@@ -137,14 +138,15 @@ export function useCamera(): UseCameraReturn {
     } catch (err) {
       console.error('[Camera] Error starting camera:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
+      const name = err instanceof Error ? err.name : '';
       
-      if (message.includes('NotAllowedError') || message.includes('Permission')) {
+      if (name === 'NotAllowedError' || message.includes('Permission')) {
         setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara.');
-      } else if (message.includes('NotFoundError') || message.includes('DevicesNotFoundError')) {
+      } else if (name === 'NotFoundError' || message.includes('DevicesNotFoundError')) {
         setError('No se encontró ninguna cámara en este dispositivo.');
-      } else if (message.includes('NotReadableError') || message.includes('TrackStartError')) {
+      } else if (name === 'NotReadableError' || message.includes('TrackStartError')) {
         setError('La cámara está siendo usada por otra aplicación.');
-      } else if (message.includes('OverconstrainedError')) {
+      } else if (name === 'OverconstrainedError') {
         setError('La cámara no soporta la configuración solicitada.');
       } else {
         setError(`Error de cámara: ${message}`);
@@ -159,14 +161,23 @@ export function useCamera(): UseCameraReturn {
     await startCamera(newFacing);
   }, [facing, startCamera]);
 
+  // Attach stream to video element if it becomes available later
+  useEffect(() => {
+    if (streamRef.current && videoRef.current && !videoRef.current.srcObject) {
+      console.log('[Camera] Late-attaching stream to video element');
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(console.error);
+    }
+  });
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [stream]);
+  }, []);
 
   return {
     videoRef,

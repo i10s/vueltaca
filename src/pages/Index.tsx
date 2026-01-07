@@ -38,9 +38,13 @@ const Index = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedLane, setSelectedLane] = useState(0);
 
-  // Auto-start camera on mount
+  // Auto-start camera after a short delay to ensure video element is mounted
   useEffect(() => {
-    startCamera();
+    const timer = setTimeout(() => {
+      console.log('[Index] Starting camera after mount...');
+      startCamera();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Get diff scores from lane states
