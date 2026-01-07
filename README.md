@@ -32,14 +32,16 @@
 
 ### ⏱️ Timing & Statistics
 - **Last lap, Best lap, Average lap** times per lane
+- **Speed calculation** based on configurable track length (0.1m increments)
 - **Live delta display** - difference from best lap
 - **Lap time progression charts** with visual trends
+- **Automatic outlier filtering** - extreme times (crashes, off-track) are filtered from charts using IQR method
 - **Race history** with all-time records
 
 ### 🎮 Race Modes
 - **Free mode** - unlimited laps
-- **Laps mode** - first to X laps wins
-- **Time mode** - race against the clock
+- **Laps mode** - first to X laps wins (configurable 1-100 laps)
+- **Time mode** - race against the clock (1-60 minutes)
 
 ### 📱 Mobile-First Design
 - **Progressive Web App (PWA)** - install on your home screen
@@ -50,14 +52,21 @@
 
 ### 🔊 Audio Features
 - **Sound effects** for lap detection and best laps
-- **Voice announcements** - optional lap time narration
+- **Voice announcements** - optional lap time narration with English voice preference
 - **Countdown timer** (3-2-1-GO!) before race start
+- **Best lap celebration** with visual and audio feedback
 
 ### 📊 Data & Sharing
 - **Export to CSV** for analysis
 - **Share results** via native share or clipboard
 - **Session history** with race summaries
 - **Local storage** - your data stays on your device
+
+### ⚡ Performance Optimizations
+- **Memoized components** - React.memo for efficient re-renders
+- **Cached calculations** - useMemo for expensive operations
+- **Optimized speed formatting** - Map-based caching
+- **Smart outlier detection** - IQR-based filtering for accurate statistics
 
 ---
 
@@ -93,12 +102,14 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 2. **Grant camera permission** when prompted
 3. **Adjust the ROI boxes** to cover the finish line area for each lane
 4. Use **Auto-Calibrate** to set the optimal detection threshold
+5. **Set track length** (0.1m - 50m) for accurate speed calculations
 
 ### Racing
 1. Select your **race mode** (Free/Laps/Time)
-2. Press **Start** - a 3-2-1 countdown will begin
-3. Race! Laps are automatically detected and timed
-4. Press **Stop** when done - results are saved automatically
+2. Configure **lap count** or **time limit** as needed
+3. Press **Start** - a 3-2-1 countdown will begin
+4. Race! Laps are automatically detected and timed
+5. Press **Stop** when done - results are saved automatically
 
 ### Tips for Best Detection
 - Ensure **good lighting** on the track
@@ -106,6 +117,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 - Make ROI boxes **as small as possible** while still covering the lane
 - Use **Debug mode** to see detection scores in real-time
 - Adjust **Threshold** if you get false positives or missed detections
+- **Outlier filtering** automatically excludes crash/off-track times from charts
 
 ---
 
@@ -113,13 +125,13 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 | Technology | Purpose |
 |------------|---------|
-| **React 18** | UI framework |
+| **React 18** | UI framework with memo optimization |
 | **TypeScript** | Type safety |
 | **Vite** | Build tool & dev server |
-| **Tailwind CSS** | Styling |
+| **Tailwind CSS** | Styling with design tokens |
 | **shadcn/ui** | UI components |
-| **Recharts** | Lap time charts |
-| **Web APIs** | Camera, Wake Lock, Vibration, Speech |
+| **Recharts** | Lap time charts with outlier filtering |
+| **Web APIs** | Camera, Wake Lock, Vibration, Speech Synthesis |
 
 ---
 
