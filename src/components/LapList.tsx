@@ -50,7 +50,7 @@ const LapRow = memo(function LapRow({ lap, lane, isBest, isRecent, trackLength }
             className="text-xs font-medium"
             style={{ color: lane?.color }}
           >
-            {lane?.name || `Carril ${lap.laneId + 1}`}
+            {lane?.name || `Lane ${lap.laneId + 1}`}
           </span>
         </div>
       </div>
@@ -102,7 +102,7 @@ export const LapList = memo(function LapList({ laps, lanes, trackLength = 5.5 }:
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-racing text-sm uppercase tracking-wider">
-            Historial
+            Lap History
           </h3>
           {laps.length > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-mono">
@@ -121,11 +121,11 @@ export const LapList = memo(function LapList({ laps, lanes, trackLength = 5.5 }:
                 className="h-8 gap-1.5 text-xs hover:bg-primary/10 hover:text-primary"
               >
                 <Download className="w-3.5 h-3.5" />
-                Exportar
+                Export
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
-              <p>Descargar tiempos en CSV</p>
+              <p>Download lap times as CSV</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -136,9 +136,9 @@ export const LapList = memo(function LapList({ laps, lanes, trackLength = 5.5 }:
         {laps.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-center px-4">
             <Zap className="w-8 h-8 text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground text-sm">Sin vueltas registradas</p>
+            <p className="text-muted-foreground text-sm">No laps recorded yet</p>
             <p className="text-muted-foreground/60 text-xs mt-1">
-              ¡Inicia el cronómetro y corre!
+              Start the timer and race!
             </p>
           </div>
         ) : (

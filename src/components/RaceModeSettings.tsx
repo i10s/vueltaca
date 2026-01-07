@@ -106,9 +106,9 @@ export function RaceModeSettings({ config, onChange, isRunning }: RaceModeSettin
 
       {/* Current mode description */}
       <div className="text-center text-xs text-muted-foreground">
-        {config.raceMode === 'free' && 'Carrera sin límites'}
-        {config.raceMode === 'laps' && `El primero en completar ${config.targetLaps} vueltas gana`}
-        {config.raceMode === 'time' && `Carrera de ${Math.floor(config.targetTime / 60)} minutos`}
+        {config.raceMode === 'free' && 'Race without limits'}
+        {config.raceMode === 'laps' && `First to complete ${config.targetLaps} laps wins`}
+        {config.raceMode === 'time' && `Race for ${Math.floor(config.targetTime / 60)} minutes`}
       </div>
 
       {/* Track length setting for speed calculation */}
@@ -116,7 +116,7 @@ export function RaceModeSettings({ config, onChange, isRunning }: RaceModeSettin
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Ruler className="w-3 h-3" />
-            <span>Longitud del circuito</span>
+            <span>Track Length</span>
           </div>
           <span className="text-sm font-mono font-medium text-foreground">
             {config.trackLength.toFixed(1)}m
@@ -132,7 +132,7 @@ export function RaceModeSettings({ config, onChange, isRunning }: RaceModeSettin
           className="w-full"
         />
         <p className="text-[10px] text-muted-foreground text-center">
-          Ajusta para calcular la velocidad en km/h
+          Adjust to calculate speed in km/h
         </p>
       </div>
     </div>

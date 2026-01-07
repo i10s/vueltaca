@@ -29,11 +29,11 @@ export function useVoiceAnnouncer(options: VoiceAnnouncerOptions = { enabled: tr
     utterance.rate = rate;
     utterance.pitch = 1;
     
-    // Try to use a Spanish voice if available
+    // Try to use an English voice if available
     const voices = window.speechSynthesis.getVoices();
-    const spanishVoice = voices.find(v => v.lang.startsWith('es'));
-    if (spanishVoice) {
-      utterance.voice = spanishVoice;
+    const englishVoice = voices.find(v => v.lang.startsWith('en'));
+    if (englishVoice) {
+      utterance.voice = englishVoice;
     }
 
     window.speechSynthesis.speak(utterance);
@@ -41,28 +41,28 @@ export function useVoiceAnnouncer(options: VoiceAnnouncerOptions = { enabled: tr
 
   const announceLap = useCallback((laneName: string, lapNumber: number, lapTime: number) => {
     const seconds = (lapTime / 1000).toFixed(1);
-    speak(`${laneName}, vuelta ${lapNumber}, ${seconds} segundos`);
+    speak(`${laneName}, lap ${lapNumber}, ${seconds} seconds`);
   }, [speak]);
 
   const announceBestLap = useCallback((laneName: string, lapTime: number) => {
     const seconds = (lapTime / 1000).toFixed(1);
-    speak(`¡Nueva mejor vuelta! ${laneName}, ${seconds} segundos`, true);
+    speak(`New best lap! ${laneName}, ${seconds} seconds`, true);
   }, [speak]);
 
   const announcePosition = useCallback((laneName: string, position: number) => {
-    const positionText = position === 1 ? 'primero' : position === 2 ? 'segundo' : position === 3 ? 'tercero' : `posición ${position}`;
+    const positionText = position === 1 ? 'first' : position === 2 ? 'second' : position === 3 ? 'third' : `position ${position}`;
     speak(`${laneName} ${positionText}`);
   }, [speak]);
 
   const announceWinner = useCallback((laneName: string, totalLaps: number) => {
-    speak(`¡${laneName} gana la carrera con ${totalLaps} vueltas!`, true);
+    speak(`${laneName} wins the race with ${totalLaps} laps!`, true);
   }, [speak]);
 
   const announceCountdown = useCallback((count: number) => {
     if (count > 0) {
       speak(count.toString(), true);
     } else {
-      speak('¡Ya!', true);
+      speak('Go!', true);
     }
   }, [speak]);
 
