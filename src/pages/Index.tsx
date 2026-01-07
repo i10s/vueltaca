@@ -1,14 +1,28 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Camera, AlertCircle, Timer } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Camera, AlertCircle, Timer, Maximize, Minimize, Volume2, VolumeX, Sun } from 'lucide-react';
 import { useCamera } from '@/hooks/useCamera';
-import { useLapTimer } from '@/hooks/useLapTimer';
+import { useLapTimer, BestLapEvent } from '@/hooks/useLapTimer';
+import { useAudioFeedback } from '@/hooks/useAudioFeedback';
+import { useWakeLock } from '@/hooks/useWakeLock';
+import { useFullscreen } from '@/hooks/useFullscreen';
+import { useRaceSessions } from '@/hooks/useRaceSessions';
 import { CameraView } from '@/components/CameraView';
 import { TimerDisplay } from '@/components/TimerDisplay';
 import { ControlPanel } from '@/components/ControlPanel';
 import { DetectionSettings } from '@/components/DetectionSettings';
 import { LapList } from '@/components/LapList';
+import { CountdownOverlay } from '@/components/CountdownOverlay';
+import { BestLapCelebration } from '@/components/BestLapCelebration';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const Index = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const {
     videoRef,
     stream,
@@ -25,6 +39,8 @@ const Index = () => {
     config,
     isCalibrating,
     triggerFlashes,
+    onLapDetected,
+    onBestLap,
     start,
     stop,
     reset,
@@ -37,6 +53,23 @@ const Index = () => {
 
   const [showSettings, setShowSettings] = useState(false);
   const [selectedLane, setSelectedLane] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [bestLapCelebration, setBestLapCelebration] = useState<BestLapEvent | null>(null);
+  
+  const { 
+    playLapSound, 
+    playBestLapSound, 
+    playCountdownTick, 
+    playCountdownGo,
+    playStopSound,
+  } = useAudioFeedback({ soundEnabled, vibrationEnabled: true });
+  
+  const { isActive: wakeLockActive, request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
+  const { isFullscreen, isSupported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen(containerRef);
+  const { saveSession } = useRaceSessions();
+  
+  const startTimeRef = useRef<number | null>(null);
 
   // Auto-start camera after a short delay to ensure video element is mounted
   useEffect(() => {
@@ -46,6 +79,54 @@ const Index = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Set up lap detection callbacks
+  useEffect(() => {
+    onLapDetected.current = (laneId: number, isBestLap: boolean) => {
+      if (isBestLap) {
+        playBestLapSound();
+      } else {
+        playLapSound();
+      }
+    };
+    
+    onBestLap.current = (event: BestLapEvent) => {
+      setBestLapCelebration(event);
+    };
+  }, [onLapDetected, onBestLap, playLapSound, playBestLapSound]);
+
+  // Wake lock management
+  useEffect(() => {
+    if (state.isRunning && !wakeLockActive) {
+      requestWakeLock();
+    } else if (!state.isRunning && wakeLockActive) {
+      releaseWakeLock();
+    }
+  }, [state.isRunning, wakeLockActive, requestWakeLock, releaseWakeLock]);
+
+  // Handle start with countdown
+  const handleStartWithCountdown = useCallback(() => {
+    setShowCountdown(true);
+  }, []);
+
+  const handleCountdownComplete = useCallback(() => {
+    setShowCountdown(false);
+    startTimeRef.current = performance.now();
+    start();
+  }, [start]);
+
+  // Handle stop and save session
+  const handleStop = useCallback(() => {
+    stop();
+    playStopSound();
+    
+    // Save session if we have laps
+    const allLaps = getAllLaps();
+    if (allLaps.length > 0 && startTimeRef.current) {
+      const duration = performance.now() - startTimeRef.current;
+      saveSession(allLaps, lanes, duration);
+    }
+  }, [stop, playStopSound, getAllLaps, lanes, saveSession]);
 
   // Get diff scores from lane states
   const diffScores = state.lanes.map(l => l.diffScore);
@@ -61,7 +142,26 @@ const Index = () => {
   }, [updateLane]);
 
   return (
-    <div className="h-full flex flex-col lg:flex-row bg-background">
+    <div ref={containerRef} className="h-full flex flex-col lg:flex-row bg-background">
+      {/* Countdown Overlay */}
+      {showCountdown && (
+        <CountdownOverlay
+          onComplete={handleCountdownComplete}
+          onTick={playCountdownTick}
+          onGo={playCountdownGo}
+        />
+      )}
+      
+      {/* Best Lap Celebration */}
+      {bestLapCelebration && (
+        <BestLapCelebration
+          lapTime={bestLapCelebration.lapTime}
+          laneName={bestLapCelebration.laneName}
+          laneColor={bestLapCelebration.laneColor}
+          onComplete={() => setBestLapCelebration(null)}
+        />
+      )}
+
       {/* Main Camera Area */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
@@ -85,12 +185,62 @@ const Index = () => {
               ))}
             </div>
             
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="lg:hidden px-3 py-1 rounded bg-secondary text-sm font-mono"
-            >
-              {showSettings ? 'Camera' : 'Settings'}
-            </button>
+            {/* Toolbar buttons */}
+            <div className="flex items-center gap-1">
+              {/* Sound toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                  >
+                    {soundEnabled ? (
+                      <Volume2 className="w-4 h-4" />
+                    ) : (
+                      <VolumeX className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {soundEnabled ? 'Mute sounds' : 'Enable sounds'}
+                </TooltipContent>
+              </Tooltip>
+              
+              {/* Fullscreen toggle */}
+              {fullscreenSupported && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={toggleFullscreen}
+                    >
+                      {isFullscreen ? (
+                        <Minimize className="w-4 h-4" />
+                      ) : (
+                        <Maximize className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isFullscreen ? 'Exit fullscreen' : 'Fullscreen mode'}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              
+              {/* Settings toggle (mobile) */}
+              <Button
+                variant="secondary"
+                size="sm"
+                className="lg:hidden h-8"
+                onClick={() => setShowSettings(!showSettings)}
+              >
+                {showSettings ? 'Camera' : 'Settings'}
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -147,8 +297,8 @@ const Index = () => {
           <ControlPanel
             isRunning={state.isRunning}
             hasMultipleCameras={hasMultipleCameras}
-            onStart={start}
-            onStop={stop}
+            onStart={handleStartWithCountdown}
+            onStop={handleStop}
             onReset={reset}
             onFlipCamera={flipCamera}
           />
