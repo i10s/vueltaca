@@ -9,8 +9,12 @@ interface CountdownOverlayProps {
 export function CountdownOverlay({ onComplete, onTick, onGo }: CountdownOverlayProps) {
   const [count, setCount] = useState(3);
   const [isGo, setIsGo] = useState(false);
+  const [isDone, setIsDone] = useState(false);
 
+  // Countdown effect
   useEffect(() => {
+    if (isDone) return;
+    
     if (count > 0) {
       onTick?.(count);
       const timer = setTimeout(() => setCount(count - 1), 1000);
@@ -18,12 +22,21 @@ export function CountdownOverlay({ onComplete, onTick, onGo }: CountdownOverlayP
     } else if (count === 0 && !isGo) {
       setIsGo(true);
       onGo?.();
+    }
+  }, [count, isGo, isDone, onTick, onGo]);
+
+  // Auto-close after GO is shown
+  useEffect(() => {
+    if (isGo && !isDone) {
       const timer = setTimeout(() => {
+        setIsDone(true);
         onComplete();
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [count, isGo, onComplete, onTick, onGo]);
+  }, [isGo, isDone, onComplete]);
+
+  if (isDone) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
