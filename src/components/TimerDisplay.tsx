@@ -57,7 +57,7 @@ const LaneCard = memo(function LaneCard({ lane, state, isRunning, trackLength }:
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50">
           <Timer className="w-3 h-3 text-muted-foreground" />
           <span className="text-xs text-muted-foreground font-mono font-medium">
-            {lapsCount} {lapsCount === 1 ? 'vuelta' : 'vueltas'}
+            {lapsCount} {lapsCount === 1 ? 'lap' : 'laps'}
           </span>
         </div>
       </div>
@@ -88,10 +88,10 @@ const LaneCard = memo(function LaneCard({ lane, state, isRunning, trackLength }:
       <div className="grid grid-cols-3 gap-2">
         {/* Last Lap */}
         <div className="text-center p-2 rounded-lg bg-background/50">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center justify-center gap-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-racing-green animate-pulse' : 'bg-muted-foreground/50'}`} />
-            Última
-          </p>
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center justify-center gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-racing-green animate-pulse' : 'bg-muted-foreground/50'}`} />
+          Last
+        </p>
           <p 
             className={`font-racing text-lg font-bold tabular-nums ${isRunning && lastLap ? 'animate-pulse' : ''}`}
             style={{ color: lane.color }}
@@ -100,12 +100,12 @@ const LaneCard = memo(function LaneCard({ lane, state, isRunning, trackLength }:
           </p>
         </div>
 
-        {/* Best Lap */}
-        <div className="text-center p-2 rounded-lg bg-accent/10 border border-accent/20">
-          <p className="text-[10px] uppercase tracking-wider text-accent mb-1 flex items-center justify-center gap-1">
-            <Trophy className="w-3 h-3" />
-            Mejor
-          </p>
+      {/* Best Lap */}
+      <div className="text-center p-2 rounded-lg bg-accent/10 border border-accent/20">
+        <p className="text-[10px] uppercase tracking-wider text-accent mb-1 flex items-center justify-center gap-1">
+          <Trophy className="w-3 h-3" />
+          Best
+        </p>
           <p className="font-racing text-lg font-bold text-accent tabular-nums">
             {state?.bestLap ? formatTimeShort(state.bestLap) : '--:---'}
           </p>
@@ -116,12 +116,12 @@ const LaneCard = memo(function LaneCard({ lane, state, isRunning, trackLength }:
           )}
         </div>
 
-        {/* Average */}
-        <div className="text-center p-2 rounded-lg bg-background/50">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center justify-center gap-1">
-            <TrendingUp className="w-3 h-3" />
-            Media
-          </p>
+      {/* Average */}
+      <div className="text-center p-2 rounded-lg bg-background/50">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center justify-center gap-1">
+          <TrendingUp className="w-3 h-3" />
+          Avg
+        </p>
           <p className="font-racing text-lg font-bold text-muted-foreground tabular-nums">
             {state?.avgLap ? formatTimeShort(state.avgLap) : '--:---'}
           </p>
@@ -142,7 +142,7 @@ export const TimerDisplay = memo(function TimerDisplay({
   if (enabledLanes.length === 0) {
     return (
       <div className="racing-card rounded-xl p-4 text-center">
-        <p className="text-muted-foreground text-sm">No hay carriles activos</p>
+        <p className="text-muted-foreground text-sm">No lanes enabled</p>
       </div>
     );
   }

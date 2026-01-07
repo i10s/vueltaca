@@ -141,15 +141,15 @@ export function useCamera(): UseCameraReturn {
       const name = err instanceof Error ? err.name : '';
       
       if (name === 'NotAllowedError' || message.includes('Permission')) {
-        setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara.');
+        setError('Camera permission denied. Please allow camera access.');
       } else if (name === 'NotFoundError' || message.includes('DevicesNotFoundError')) {
-        setError('No se encontró ninguna cámara en este dispositivo.');
+        setError('No camera found on this device.');
       } else if (name === 'NotReadableError' || message.includes('TrackStartError')) {
-        setError('La cámara está siendo usada por otra aplicación.');
+        setError('Camera is being used by another application.');
       } else if (name === 'OverconstrainedError') {
-        setError('La cámara no soporta la configuración solicitada.');
+        setError('Camera does not support the requested configuration.');
       } else {
-        setError(`Error de cámara: ${message}`);
+        setError(`Camera error: ${message}`);
       }
     } finally {
       setIsLoading(false);
