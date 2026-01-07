@@ -89,7 +89,7 @@ export function CameraView({
 
     let animationId: number;
     let lastFrameTime = 0;
-    const targetFPS = 30; // Limit to 30fps for performance
+    const targetFPS = 60; // Increased to 60fps for better fast car detection
     const frameInterval = 1000 / targetFPS;
 
     const processFrame = (timestamp: number) => {

@@ -101,9 +101,9 @@ export const createEmptyLaneState = (): LaneState => ({
 });
 
 const DEFAULT_CONFIG: TimerConfig = {
-  threshold: 15,
-  cooldown: 500,
-  smoothing: 3,
+  threshold: 12, // Lowered for better sensitivity
+  cooldown: 400, // Reduced cooldown for faster detection
+  smoothing: 2,  // Reduced smoothing for faster response
   debugMode: false,
   laneCount: 2,
   raceMode: 'free',
