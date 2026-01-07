@@ -127,7 +127,7 @@ export function RaceModeSettings({ config, onChange, isRunning }: RaceModeSettin
           onValueChange={([value]) => onChange({ trackLength: value })}
           min={2}
           max={20}
-          step={0.5}
+          step={0.1}
           disabled={isRunning}
           className="w-full"
         />
