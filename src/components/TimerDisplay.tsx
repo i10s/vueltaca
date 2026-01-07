@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { formatTimeShort, LaneConfig, LaneState, calculateSpeed, formatSpeed } from '@/lib/lapTimer';
 import { Trophy, TrendingUp, Timer, Gauge } from 'lucide-react';
 
@@ -139,13 +139,9 @@ export const TimerDisplay = memo(function TimerDisplay({
 }: TimerDisplayProps) {
   const enabledLanes = useMemo(() => lanes.filter(l => l.enabled), [lanes]);
 
-  // Create safe lane state lookup - ensure we always have valid state for each lane
-  const laneStateMap = useMemo(() => {
-    const map: Record<number, LaneState> = {};
-    laneStates.forEach((state, index) => {
-      if (state) map[index] = state;
-    });
-    return map;
+  // Get state directly by lane.id - laneStates array is indexed by lane.id
+  const getStateForLane = useCallback((laneId: number): LaneState | undefined => {
+    return laneStates[laneId];
   }, [laneStates]);
 
   if (enabledLanes.length === 0) {
@@ -159,7 +155,7 @@ export const TimerDisplay = memo(function TimerDisplay({
   return (
     <div className="space-y-3">
       {enabledLanes.map((lane) => {
-        const state = laneStateMap[lane.id];
+        const state = getStateForLane(lane.id);
         if (!state) return null;
         return (
           <LaneCard
