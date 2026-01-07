@@ -187,6 +187,9 @@ export function useLapTimer(): UseLapTimerReturn {
       // Extract and compute diff score
       const luma = extractROILuma(ctx, lane.roi, width, height);
       const rawScore = computeDiffScore(luma, laneState.prevLuma);
+      
+      // Use both raw and smoothed scores for detection
+      // Raw score catches fast passes, smoothed reduces false positives
       const smoothedScore = applySmoothing(
         laneState.smoothingBuffer, 
         rawScore, 
@@ -195,18 +198,24 @@ export function useLapTimer(): UseLapTimerReturn {
       
       // Update luma for next frame
       laneState.prevLuma = luma;
-      laneState.diffScore = smoothedScore;
+      laneState.diffScore = Math.max(rawScore, smoothedScore); // Show max for debug
 
       // Handle calibration
       if (isCalibrating) {
-        calibrationSamplesRef.current[i].push(smoothedScore);
+        calibrationSamplesRef.current[i].push(rawScore);
         continue;
       }
 
+      // Trigger detection: use raw score for fast detection OR smoothed for reliability
+      // Raw score with higher threshold catches fast passes that smoothing would miss
+      const fastPassThreshold = config.threshold * 1.5; // Higher threshold for raw
+      const isFastPass = rawScore >= fastPassThreshold;
+      const isNormalPass = smoothedScore >= config.threshold;
+      
       // Check for trigger
       if (
         isRunningRef.current &&
-        smoothedScore >= config.threshold &&
+        (isFastPass || isNormalPass) &&
         now - laneState.lastTriggerTime >= config.cooldown
       ) {
         laneState.lastTriggerTime = now;
