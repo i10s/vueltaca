@@ -21,6 +21,7 @@ import { RaceModeSettings } from '@/components/RaceModeSettings';
 import { ShareResults } from '@/components/ShareResults';
 import { LaneCustomizer } from '@/components/LaneCustomizer';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Tooltip,
   TooltipContent,
@@ -336,67 +337,67 @@ const Index = () => {
           ${showSettings ? 'flex' : 'hidden'} lg:flex
           flex-col w-full lg:w-80 xl:w-96 
           border-t lg:border-t-0 lg:border-l border-border
-          bg-card overflow-hidden
+          bg-card overflow-hidden max-h-screen lg:max-h-full
         `}
       >
-        {/* Timer Stats & Leaderboard */}
-        <div className="p-4 space-y-3">
-          <RaceLeaderboard
-            lanes={lanes.slice(0, config.laneCount)}
-            laneStates={state.lanes}
-            isRunning={state.isRunning}
-          />
-          <TimerDisplay
-            lanes={lanes.slice(0, config.laneCount)}
-            laneStates={state.lanes}
-            isRunning={state.isRunning}
-          />
-        </div>
-
-        {/* Lap Chart */}
-        <div className="px-4 pb-3">
-          <LapChart
-            lanes={lanes.slice(0, config.laneCount)}
-            laneStates={state.lanes}
-          />
-        </div>
-
-        {/* Race Mode & Detection Settings */}
-        <div className="px-4 pb-4 space-y-4">
-          <RaceModeSettings
-            config={config}
-            onChange={setConfig}
-            isRunning={state.isRunning}
-          />
-          <DetectionSettings
-            config={config}
-            lanes={lanes.slice(0, config.laneCount)}
-            selectedLane={selectedLane}
-            onChange={setConfig}
-            onSelectLane={setSelectedLane}
-            onToggleLane={handleToggleLane}
-            onCalibrate={startCalibration}
-            isCalibrating={isCalibrating}
-            diffScores={diffScores}
-          />
-        </div>
-
-        {/* Lap History with Share */}
-        <div className="flex-1 px-4 pb-4 min-h-0 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/history')} className="gap-1.5">
-              <History className="w-4 h-4" />
-              History
-            </Button>
-            <ShareResults laps={getAllLaps()} lanes={lanes} />
-          </div>
-          <div className="flex-1 min-h-0">
-            <LapList 
-              laps={getAllLaps()} 
-              lanes={lanes} 
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-4">
+            {/* Leaderboard */}
+            <RaceLeaderboard
+              lanes={lanes.slice(0, config.laneCount)}
+              laneStates={state.lanes}
+              isRunning={state.isRunning}
             />
+            
+            {/* Timer Stats */}
+            <TimerDisplay
+              lanes={lanes.slice(0, config.laneCount)}
+              laneStates={state.lanes}
+              isRunning={state.isRunning}
+            />
+
+            {/* Lap Chart */}
+            <LapChart
+              lanes={lanes.slice(0, config.laneCount)}
+              laneStates={state.lanes}
+            />
+
+            {/* Race Mode */}
+            <RaceModeSettings
+              config={config}
+              onChange={setConfig}
+              isRunning={state.isRunning}
+            />
+            
+            {/* Detection Settings */}
+            <DetectionSettings
+              config={config}
+              lanes={lanes.slice(0, config.laneCount)}
+              selectedLane={selectedLane}
+              onChange={setConfig}
+              onSelectLane={setSelectedLane}
+              onToggleLane={handleToggleLane}
+              onCalibrate={startCalibration}
+              isCalibrating={isCalibrating}
+              diffScores={diffScores}
+            />
+
+            {/* Lap History with Share */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/history')} className="gap-1.5">
+                  <History className="w-4 h-4" />
+                  History
+                </Button>
+                <ShareResults laps={getAllLaps()} lanes={lanes} />
+              </div>
+              <LapList 
+                laps={getAllLaps()} 
+                lanes={lanes} 
+              />
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </aside>
     </div>
   );
