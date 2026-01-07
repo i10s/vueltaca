@@ -114,17 +114,35 @@ const DEFAULT_CONFIG: TimerConfig = {
   trackLength: 5.5, // Default Scalextric track ~5.5m
 };
 
-// Calculate speed in km/h from lap time and track length
+// Pre-computed constant for speed calculation (3600 / 1000 = 3.6)
+const SPEED_FACTOR = 3.6;
+
+// Calculate speed in km/h from lap time and track length - optimized
 export function calculateSpeed(lapTimeMs: number, trackLengthMeters: number): number {
   if (lapTimeMs <= 0 || trackLengthMeters <= 0) return 0;
-  const lapTimeHours = lapTimeMs / 1000 / 3600;
-  const trackLengthKm = trackLengthMeters / 1000;
-  return trackLengthKm / lapTimeHours;
+  // speed = (distance / time) * 3.6 to convert m/s to km/h
+  return (trackLengthMeters / lapTimeMs) * 1000 * SPEED_FACTOR;
 }
+
+// Cached formatSpeed to avoid repeated string operations
+const speedCache = new Map<number, string>();
+const CACHE_MAX_SIZE = 100;
 
 export function formatSpeed(speed: number): string {
   if (speed <= 0 || !isFinite(speed)) return '--';
-  return speed.toFixed(1);
+  
+  // Round to 1 decimal for cache key
+  const rounded = Math.round(speed * 10);
+  
+  let result = speedCache.get(rounded);
+  if (!result) {
+    result = (rounded / 10).toFixed(1);
+    if (speedCache.size >= CACHE_MAX_SIZE) {
+      speedCache.clear();
+    }
+    speedCache.set(rounded, result);
+  }
+  return result;
 }
 
 export function loadConfig(): { lanes: LaneConfig[]; timer: TimerConfig } {
