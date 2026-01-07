@@ -1,73 +1,172 @@
-# Welcome to your Lovable project
+# 🏎️ Scalextric Lap Timer
 
-## Project info
+<div align="center">
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![Scalextric Lap Timer](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=for-the-badge&logo=pwa)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)
+![Tailwind](https://img.shields.io/badge/Tailwind-CSS-06B6D4?style=for-the-badge&logo=tailwindcss)
 
-## How can I edit this code?
+**A camera-based lap timing system for Scalextric and slot car racing**
 
-There are several ways of editing your application.
+[Live Demo](https://laptimer.lovable.app) · [Report Bug](https://github.com/yourusername/laptimer/issues) · [Request Feature](https://github.com/yourusername/laptimer/issues)
 
-**Use Lovable**
+</div>
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## ✨ Features
 
-**Use your preferred IDE**
+### 🎥 Camera-Based Detection
+- **Real-time motion detection** using your device's camera
+- **60 FPS processing** for detecting fast-moving cars
+- **Dual detection algorithm** - catches both fast passes and normal crossings
+- **Adjustable ROI (Region of Interest)** - drag and resize detection zones
+- **Auto-calibration** - automatically sets optimal threshold based on lighting
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 🏁 Multi-Lane Racing
+- Support for **1-4 simultaneous lanes**
+- **Independent tracking** for each lane with color coding
+- **Customizable lane names and colors**
+- **Real-time position tracking** - see who's winning
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### ⏱️ Timing & Statistics
+- **Last lap, Best lap, Average lap** times per lane
+- **Live delta display** - difference from best lap
+- **Lap time progression charts** with visual trends
+- **Race history** with all-time records
 
-Follow these steps:
+### 🎮 Race Modes
+- **Free mode** - unlimited laps
+- **Laps mode** - first to X laps wins
+- **Time mode** - race against the clock
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 📱 Mobile-First Design
+- **Progressive Web App (PWA)** - install on your home screen
+- **Works offline** after first load
+- **Wake lock** - screen stays on during racing
+- **Haptic feedback** - vibration on lap detection
+- **Fullscreen mode** for immersive racing
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🔊 Audio Features
+- **Sound effects** for lap detection and best laps
+- **Voice announcements** - optional lap time narration
+- **Countdown timer** (3-2-1-GO!) before race start
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 📊 Data & Sharing
+- **Export to CSV** for analysis
+- **Share results** via native share or clipboard
+- **Session history** with race summaries
+- **Local storage** - your data stays on your device
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+---
+
+## 🚀 Quick Start
+
+### Option 1: Use the Live App
+Visit **[laptimer.lovable.app](https://laptimer.lovable.app)** and start timing!
+
+### Option 2: Run Locally
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/scalextric-lap-timer.git
+
+# Navigate to the project
+cd scalextric-lap-timer
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 📖 How to Use
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Setup
+1. **Position your phone/camera** above the finish line, pointing down
+2. **Grant camera permission** when prompted
+3. **Adjust the ROI boxes** to cover the finish line area for each lane
+4. Use **Auto-Calibrate** to set the optimal detection threshold
 
-## What technologies are used for this project?
+### Racing
+1. Select your **race mode** (Free/Laps/Time)
+2. Press **Start** - a 3-2-1 countdown will begin
+3. Race! Laps are automatically detected and timed
+4. Press **Stop** when done - results are saved automatically
 
-This project is built with:
+### Tips for Best Detection
+- Ensure **good lighting** on the track
+- Position ROI boxes on a **contrasting area** (e.g., white finish line)
+- Make ROI boxes **as small as possible** while still covering the lane
+- Use **Debug mode** to see detection scores in real-time
+- Adjust **Threshold** if you get false positives or missed detections
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 🛠️ Technology Stack
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+| Technology | Purpose |
+|------------|---------|
+| **React 18** | UI framework |
+| **TypeScript** | Type safety |
+| **Vite** | Build tool & dev server |
+| **Tailwind CSS** | Styling |
+| **shadcn/ui** | UI components |
+| **Recharts** | Lap time charts |
+| **Web APIs** | Camera, Wake Lock, Vibration, Speech |
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 📱 Browser Support
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+| Browser | Support |
+|---------|---------|
+| Chrome (Android) | ✅ Full support |
+| Safari (iOS) | ✅ Full support |
+| Chrome (Desktop) | ✅ Full support |
+| Firefox | ✅ Full support |
+| Edge | ✅ Full support |
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+> **Note:** Camera access requires HTTPS or localhost
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with [Lovable](https://lovable.dev)
+- UI components from [shadcn/ui](https://ui.shadcn.com)
+- Icons from [Lucide](https://lucide.dev)
+
+---
+
+<div align="center">
+
+**Made with ❤️ for slot car enthusiasts**
+
+⭐ Star this repo if you find it useful!
+
+</div>
