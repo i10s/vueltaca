@@ -1,4 +1,4 @@
-# 🏎️ Scalextric Lap Timer
+# 🏎️ Lap Timer
 
 <div align="center">
 
