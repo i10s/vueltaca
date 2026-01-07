@@ -104,7 +104,7 @@ const Index = () => {
         playBestLapSound();
         if (lastLap) announceBestLap(lane?.name || `Lane ${laneId + 1}`, lastLap.lapTime);
       } else {
-        playLapSound();
+        playLapSound(laneId);
         if (lastLap) announceLap(lane?.name || `Lane ${laneId + 1}`, lapCount, lastLap.lapTime);
       }
       
@@ -342,6 +342,7 @@ const Index = () => {
               lanes={lanes.slice(0, config.laneCount)}
               laneStates={state.lanes}
               isRunning={state.isRunning}
+              trackLength={config.trackLength}
             />
 
             {/* Lap Chart */}
@@ -381,7 +382,8 @@ const Index = () => {
               </div>
               <LapList 
                 laps={getAllLaps()} 
-                lanes={lanes} 
+                lanes={lanes}
+                trackLength={config.trackLength}
               />
             </div>
           </div>

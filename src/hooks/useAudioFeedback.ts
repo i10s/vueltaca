@@ -51,13 +51,42 @@ export function useAudioFeedback(options: AudioFeedbackOptions = { soundEnabled:
     navigator.vibrate(pattern);
   }, [vibrationEnabled]);
 
-  // Lap detection sound - quick beep
-  const playLapSound = useCallback((laneColor?: string) => {
-    // Different frequencies for different lanes
-    const baseFreq = 880; // A5
-    playTone(baseFreq, 0.15, 'square');
-    vibrate(50);
-  }, [playTone, vibrate]);
+  // Lane-specific frequencies for distinct sounds
+  const LANE_FREQUENCIES = [
+    { base: 523.25, notes: [523.25, 659.25] }, // Lane 1: C5-E5 (bright major third)
+    { base: 392.00, notes: [392.00, 493.88] }, // Lane 2: G4-B4 (warm major third)
+    { base: 440.00, notes: [440.00, 554.37] }, // Lane 3: A4-C#5 (strong major third)
+    { base: 349.23, notes: [349.23, 440.00] }, // Lane 4: F4-A4 (rich major third)
+  ];
+
+  // Lap detection sound - distinct two-note chime per lane
+  const playLapSound = useCallback((laneId: number = 0) => {
+    if (!soundEnabled || !audioContextRef.current) return;
+
+    const ctx = audioContextRef.current;
+    const laneSound = LANE_FREQUENCIES[laneId % LANE_FREQUENCIES.length];
+    
+    // Play two-note ascending chime for clear lane identification
+    laneSound.notes.forEach((freq, i) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.frequency.value = freq;
+      oscillator.type = 'sine';
+
+      const startTime = ctx.currentTime + i * 0.08;
+      gainNode.gain.setValueAtTime(0.35, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 0.15);
+    });
+
+    vibrate([30, 20, 50]);
+  }, [soundEnabled, vibrate]);
 
   // Best lap sound - celebratory fanfare
   const playBestLapSound = useCallback(() => {
