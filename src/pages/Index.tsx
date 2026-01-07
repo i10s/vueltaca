@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Camera, AlertCircle, Timer } from 'lucide-react';
 import { useCamera } from '@/hooks/useCamera';
 import { useLapTimer } from '@/hooks/useLapTimer';
@@ -21,26 +21,40 @@ const Index = () => {
 
   const {
     state,
-    roi,
+    lanes,
     config,
-    diffScore,
     isCalibrating,
-    triggerFlash,
+    triggerFlashes,
     start,
     stop,
     reset,
-    setROI,
+    updateLane,
     setConfig,
     startCalibration,
     processFrame,
+    getAllLaps,
   } = useLapTimer();
 
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedLane, setSelectedLane] = useState(0);
 
   // Auto-start camera on mount
   useEffect(() => {
     startCamera();
   }, []);
+
+  // Get diff scores from lane states
+  const diffScores = state.lanes.map(l => l.diffScore);
+
+  // Handle lane ROI change
+  const handleLaneROIChange = useCallback((laneId: number, roi: typeof lanes[0]['roi']) => {
+    updateLane(laneId, { roi });
+  }, [updateLane]);
+
+  // Handle lane toggle
+  const handleToggleLane = useCallback((laneId: number, enabled: boolean) => {
+    updateLane(laneId, { enabled });
+  }, [updateLane]);
 
   return (
     <div className="h-full flex flex-col lg:flex-row bg-background">
@@ -55,12 +69,25 @@ const Index = () => {
             </h1>
           </div>
           
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="lg:hidden px-3 py-1 rounded bg-secondary text-sm font-mono"
-          >
-            {showSettings ? 'Camera' : 'Settings'}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Lane indicators */}
+            <div className="hidden sm:flex items-center gap-1">
+              {lanes.slice(0, config.laneCount).map((lane, i) => (
+                <div
+                  key={lane.id}
+                  className={`w-3 h-3 rounded-full transition-opacity ${lane.enabled ? 'opacity-100' : 'opacity-30'}`}
+                  style={{ backgroundColor: lane.color }}
+                />
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="lg:hidden px-3 py-1 rounded bg-secondary text-sm font-mono"
+            >
+              {showSettings ? 'Camera' : 'Settings'}
+            </button>
+          </div>
         </header>
 
         {/* Camera / Error View */}
@@ -99,12 +126,13 @@ const Index = () => {
           ) : (
             <CameraView
               videoRef={videoRef}
-              roi={roi}
-              onROIChange={setROI}
+              lanes={lanes.slice(0, config.laneCount)}
+              selectedLane={selectedLane}
+              onLaneROIChange={handleLaneROIChange}
               onFrame={processFrame}
-              triggerFlash={triggerFlash}
+              triggerFlashes={triggerFlashes}
               debugMode={config.debugMode}
-              diffScore={diffScore}
+              diffScores={diffScores}
               threshold={config.threshold}
             />
           )}
@@ -123,7 +151,7 @@ const Index = () => {
         )}
       </div>
 
-      {/* Sidebar (mobile: toggleable, desktop: always visible) */}
+      {/* Sidebar */}
       <aside
         className={`
           ${showSettings ? 'flex' : 'hidden'} lg:flex
@@ -135,10 +163,8 @@ const Index = () => {
         {/* Timer Stats */}
         <div className="p-4">
           <TimerDisplay
-            lastLap={state.laps.length > 0 ? state.laps[state.laps.length - 1].lapTime : null}
-            bestLap={state.bestLap}
-            avgLap={state.avgLap}
-            lapsCount={state.laps.length}
+            lanes={lanes.slice(0, config.laneCount)}
+            laneStates={state.lanes}
             isRunning={state.isRunning}
           />
         </div>
@@ -147,16 +173,23 @@ const Index = () => {
         <div className="px-4 pb-4">
           <DetectionSettings
             config={config}
+            lanes={lanes.slice(0, config.laneCount)}
+            selectedLane={selectedLane}
             onChange={setConfig}
+            onSelectLane={setSelectedLane}
+            onToggleLane={handleToggleLane}
             onCalibrate={startCalibration}
             isCalibrating={isCalibrating}
-            diffScore={diffScore}
+            diffScores={diffScores}
           />
         </div>
 
         {/* Lap History */}
         <div className="flex-1 px-4 pb-4 min-h-0">
-          <LapList laps={state.laps} bestLap={state.bestLap} />
+          <LapList 
+            laps={getAllLaps()} 
+            lanes={lanes} 
+          />
         </div>
       </aside>
     </div>

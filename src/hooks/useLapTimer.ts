@@ -1,64 +1,85 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   LapData, 
-  ROIConfig, 
+  LaneConfig,
+  LaneState,
   TimerConfig, 
   TimerState,
-  MotionDetector,
   loadConfig,
   saveConfig,
+  createDefaultLanes,
+  createEmptyLaneState,
+  extractROILuma,
+  computeDiffScore,
+  applySmoothing,
+  calibrateThreshold,
 } from '@/lib/lapTimer';
 
 interface UseLapTimerReturn {
-  // State
   state: TimerState;
-  roi: ROIConfig;
+  lanes: LaneConfig[];
   config: TimerConfig;
-  diffScore: number;
   isCalibrating: boolean;
-  triggerFlash: boolean;
+  triggerFlashes: boolean[];
   
-  // Actions
   start: () => void;
   stop: () => void;
   reset: () => void;
-  setROI: (roi: ROIConfig) => void;
+  setLanes: (lanes: LaneConfig[]) => void;
+  updateLane: (laneId: number, updates: Partial<LaneConfig>) => void;
   setConfig: (config: Partial<TimerConfig>) => void;
   startCalibration: () => void;
-  
-  // Frame processing
   processFrame: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  getAllLaps: () => LapData[];
+  getLaneState: (laneId: number) => LaneState;
 }
 
 export function useLapTimer(): UseLapTimerReturn {
   const savedConfig = loadConfig();
   
+  const [lanes, setLanesState] = useState<LaneConfig[]>(savedConfig.lanes);
+  const [config, setConfigState] = useState<TimerConfig>(savedConfig.timer);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [triggerFlashes, setTriggerFlashes] = useState<boolean[]>([false, false, false, false]);
+  
+  // Use refs for mutable state that doesn't need re-renders
+  const laneStatesRef = useRef<LaneState[]>(
+    Array.from({ length: 4 }, () => createEmptyLaneState())
+  );
+  const isRunningRef = useRef(false);
+  const startTimeRef = useRef<number | null>(null);
+  const calibrationSamplesRef = useRef<number[][]>([[], [], [], []]);
+  const calibrationStartRef = useRef<number>(0);
+  
+  // Force re-render trigger
+  const [, forceUpdate] = useState({});
+
   const [state, setState] = useState<TimerState>({
     isRunning: false,
     startTime: null,
-    lastLapTime: null,
-    laps: [],
-    bestLap: null,
-    avgLap: null,
+    lanes: laneStatesRef.current,
   });
-  
-  const [roi, setROIState] = useState<ROIConfig>(savedConfig.roi);
-  const [config, setConfigState] = useState<TimerConfig>(savedConfig.timer);
-  const [diffScore, setDiffScore] = useState(0);
-  const [isCalibrating, setIsCalibrating] = useState(false);
-  const [triggerFlash, setTriggerFlash] = useState(false);
-  
-  const detectorRef = useRef(new MotionDetector());
-  const calibrationSamplesRef = useRef<number[]>([]);
-  const calibrationStartRef = useRef<number>(0);
 
   // Save config when it changes
   useEffect(() => {
-    saveConfig(roi, config);
-  }, [roi, config]);
+    saveConfig(lanes, config);
+  }, [lanes, config]);
 
-  const setROI = useCallback((newROI: ROIConfig) => {
-    setROIState(newROI);
+  // Update lane count
+  useEffect(() => {
+    if (lanes.length !== config.laneCount) {
+      setLanesState(createDefaultLanes(config.laneCount));
+    }
+  }, [config.laneCount, lanes.length]);
+
+  const setLanes = useCallback((newLanes: LaneConfig[]) => {
+    setLanesState(newLanes);
+  }, []);
+
+  const updateLane = useCallback((laneId: number, updates: Partial<LaneConfig>) => {
+    setLanesState(prev => prev.map(lane => 
+      lane.id === laneId ? { ...lane, ...updates } : lane
+    ));
   }, []);
 
   const setConfig = useCallback((partial: Partial<TimerConfig>) => {
@@ -67,44 +88,72 @@ export function useLapTimer(): UseLapTimerReturn {
 
   const start = useCallback(() => {
     const now = performance.now();
-    setState(prev => ({
-      ...prev,
+    isRunningRef.current = true;
+    startTimeRef.current = now;
+    
+    // Reset all lane states
+    laneStatesRef.current = laneStatesRef.current.map(lane => ({
+      ...createEmptyLaneState(),
       isRunning: true,
       startTime: now,
       lastLapTime: now,
     }));
-    detectorRef.current.reset();
+    
+    setState({
+      isRunning: true,
+      startTime: now,
+      lanes: laneStatesRef.current,
+    });
   }, []);
 
   const stop = useCallback(() => {
+    isRunningRef.current = false;
+    
+    laneStatesRef.current = laneStatesRef.current.map(lane => ({
+      ...lane,
+      isRunning: false,
+    }));
+    
     setState(prev => ({
       ...prev,
       isRunning: false,
+      lanes: laneStatesRef.current,
     }));
   }, []);
 
   const reset = useCallback(() => {
+    isRunningRef.current = false;
+    startTimeRef.current = null;
+    
+    laneStatesRef.current = Array.from({ length: 4 }, () => createEmptyLaneState());
+    
     setState({
       isRunning: false,
       startTime: null,
-      lastLapTime: null,
-      laps: [],
-      bestLap: null,
-      avgLap: null,
+      lanes: laneStatesRef.current,
     });
-    detectorRef.current.reset();
-    setDiffScore(0);
   }, []);
 
   const startCalibration = useCallback(() => {
     setIsCalibrating(true);
-    calibrationSamplesRef.current = [];
+    calibrationSamplesRef.current = [[], [], [], []];
     calibrationStartRef.current = performance.now();
   }, []);
 
-  const showTriggerFlash = useCallback(() => {
-    setTriggerFlash(true);
-    setTimeout(() => setTriggerFlash(false), 200);
+  const showTriggerFlash = useCallback((laneId: number) => {
+    setTriggerFlashes(prev => {
+      const next = [...prev];
+      next[laneId] = true;
+      return next;
+    });
+    
+    setTimeout(() => {
+      setTriggerFlashes(prev => {
+        const next = [...prev];
+        next[laneId] = false;
+        return next;
+      });
+    }, 200);
   }, []);
 
   const processFrame = useCallback((
@@ -112,79 +161,119 @@ export function useLapTimer(): UseLapTimerReturn {
     width: number,
     height: number
   ) => {
-    const detector = detectorRef.current;
-    
-    // Extract and process ROI
-    const { luma } = detector.extractROI(ctx, roi, width, height);
-    const rawScore = detector.computeDiffScore(luma);
-    const smoothedScore = detector.applySmoothing(rawScore, config.smoothing);
-    
-    setDiffScore(smoothedScore);
+    const now = performance.now();
+    let stateChanged = false;
 
-    // Handle calibration
-    if (isCalibrating) {
-      calibrationSamplesRef.current.push(smoothedScore);
+    // Process each enabled lane
+    for (let i = 0; i < lanes.length; i++) {
+      const lane = lanes[i];
+      if (!lane.enabled) continue;
+
+      const laneState = laneStatesRef.current[i];
       
-      if (performance.now() - calibrationStartRef.current > 3000) {
-        const newThreshold = detector.calibrate(
-          ctx, roi, width, height,
-          calibrationSamplesRef.current
-        );
-        setConfig({ threshold: Math.max(5, Math.min(100, newThreshold)) });
-        setIsCalibrating(false);
+      // Extract and compute diff score
+      const luma = extractROILuma(ctx, lane.roi, width, height);
+      const rawScore = computeDiffScore(luma, laneState.prevLuma);
+      const smoothedScore = applySmoothing(
+        laneState.smoothingBuffer, 
+        rawScore, 
+        config.smoothing
+      );
+      
+      // Update luma for next frame
+      laneState.prevLuma = luma;
+      laneState.diffScore = smoothedScore;
+
+      // Handle calibration
+      if (isCalibrating) {
+        calibrationSamplesRef.current[i].push(smoothedScore);
+        continue;
       }
-      return;
+
+      // Check for trigger
+      if (
+        isRunningRef.current &&
+        smoothedScore >= config.threshold &&
+        now - laneState.lastTriggerTime >= config.cooldown
+      ) {
+        laneState.lastTriggerTime = now;
+        
+        if (laneState.lastLapTime && startTimeRef.current) {
+          const lapTime = now - laneState.lastLapTime;
+          const relativeTime = now - startTimeRef.current;
+          const lapNumber = laneState.laps.length + 1;
+          
+          const newLap: LapData = {
+            lapNumber,
+            lapTime,
+            timestamp: now,
+            relativeTime,
+            laneId: i,
+          };
+          
+          laneState.laps.push(newLap);
+          
+          // Update stats
+          const times = laneState.laps.map(l => l.lapTime);
+          laneState.bestLap = Math.min(...times);
+          laneState.avgLap = times.reduce((a, b) => a + b, 0) / times.length;
+          
+          showTriggerFlash(i);
+          stateChanged = true;
+        }
+        
+        laneState.lastLapTime = now;
+      }
     }
 
-    // Check for trigger
-    if (detector.checkTrigger(smoothedScore, config.threshold, config.cooldown, state.isRunning)) {
-      const now = performance.now();
+    // Complete calibration after 3 seconds
+    if (isCalibrating && now - calibrationStartRef.current > 3000) {
+      const allSamples = calibrationSamplesRef.current
+        .flat()
+        .filter(s => s > 0);
       
-      showTriggerFlash();
-      
-      setState(prev => {
-        if (!prev.lastLapTime || !prev.startTime) return prev;
-        
-        const lapTime = now - prev.lastLapTime;
-        const relativeTime = now - prev.startTime;
-        const lapNumber = prev.laps.length + 1;
-        
-        const newLap: LapData = {
-          lapNumber,
-          lapTime,
-          timestamp: now,
-          relativeTime,
-        };
-        
-        const newLaps = [...prev.laps, newLap];
-        const times = newLaps.map(l => l.lapTime);
-        const bestLap = Math.min(...times);
-        const avgLap = times.reduce((a, b) => a + b, 0) / times.length;
-        
-        return {
-          ...prev,
-          lastLapTime: now,
-          laps: newLaps,
-          bestLap,
-          avgLap,
-        };
+      if (allSamples.length > 0) {
+        const newThreshold = calibrateThreshold(allSamples);
+        setConfig({ threshold: newThreshold });
+      }
+      setIsCalibrating(false);
+    }
+
+    // Update state periodically for UI refresh
+    if (stateChanged || now % 100 < 16) {
+      setState({
+        isRunning: isRunningRef.current,
+        startTime: startTimeRef.current,
+        lanes: [...laneStatesRef.current],
       });
     }
-  }, [roi, config, state.isRunning, isCalibrating, setConfig, showTriggerFlash]);
+  }, [lanes, config, isCalibrating, setConfig, showTriggerFlash]);
+
+  const getAllLaps = useCallback((): LapData[] => {
+    return laneStatesRef.current
+      .flatMap(lane => lane.laps)
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }, []);
+
+  const getLaneState = useCallback((laneId: number): LaneState => {
+    return laneStatesRef.current[laneId] || createEmptyLaneState();
+  }, []);
 
   return {
     state,
-    roi,
+    lanes,
     config,
-    diffScore,
     isCalibrating,
-    triggerFlash,
+    triggerFlashes,
     start,
     stop,
     reset,
-    setROI,
+    setLanes,
+    updateLane,
     setConfig,
     startCalibration,
     processFrame,
+    getAllLaps,
+    getLaneState,
   };
 }

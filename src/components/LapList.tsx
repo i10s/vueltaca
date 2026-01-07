@@ -1,14 +1,20 @@
 import React from 'react';
 import { Download, Trophy } from 'lucide-react';
-import { LapData, formatTimeShort, exportToCSV } from '@/lib/lapTimer';
+import { LapData, LaneConfig, formatTimeShort, exportToCSV } from '@/lib/lapTimer';
 
 interface LapListProps {
   laps: LapData[];
-  bestLap: number | null;
+  lanes: LaneConfig[];
 }
 
-export function LapList({ laps, bestLap }: LapListProps) {
-  const reversedLaps = [...laps].reverse();
+export function LapList({ laps, lanes }: LapListProps) {
+  // Find best lap per lane
+  const bestPerLane: Record<number, number> = {};
+  laps.forEach(lap => {
+    if (!bestPerLane[lap.laneId] || lap.lapTime < bestPerLane[lap.laneId]) {
+      bestPerLane[lap.laneId] = lap.lapTime;
+    }
+  });
 
   return (
     <div className="racing-card rounded-xl flex flex-col h-full overflow-hidden">
@@ -17,7 +23,7 @@ export function LapList({ laps, bestLap }: LapListProps) {
         
         {laps.length > 0 && (
           <button
-            onClick={() => exportToCSV(laps)}
+            onClick={() => exportToCSV(laps, lanes)}
             className="flex items-center gap-1 px-2 py-1 rounded bg-secondary text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Download className="w-3 h-3" />
@@ -35,30 +41,44 @@ export function LapList({ laps, bestLap }: LapListProps) {
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-card">
               <tr className="text-xs text-muted-foreground">
-                <th className="text-left p-3 w-16">#</th>
-                <th className="text-right p-3">Time</th>
-                <th className="text-right p-3">Total</th>
+                <th className="text-left p-2 w-12">#</th>
+                <th className="text-left p-2">Lane</th>
+                <th className="text-right p-2">Time</th>
               </tr>
             </thead>
             <tbody>
-              {reversedLaps.map((lap) => {
-                const isBest = lap.lapTime === bestLap;
+              {laps.map((lap, index) => {
+                const lane = lanes[lap.laneId];
+                const isBest = lap.lapTime === bestPerLane[lap.laneId];
+                
                 return (
                   <tr
-                    key={lap.lapNumber}
-                    className={`lap-row border-t border-border/50 ${isBest ? 'best' : ''}`}
+                    key={`${lap.laneId}-${lap.lapNumber}-${index}`}
+                    className="border-t border-border/50 transition-colors hover:bg-muted/50"
+                    style={isBest ? { 
+                      background: `linear-gradient(90deg, ${lane?.color}20, transparent)`,
+                      borderLeft: `3px solid ${lane?.color}`,
+                    } : undefined}
                   >
-                    <td className="p-3 font-mono">
-                      <div className="flex items-center gap-2">
+                    <td className="p-2 font-mono text-muted-foreground">
+                      <div className="flex items-center gap-1">
                         {lap.lapNumber}
                         {isBest && <Trophy className="w-3 h-3 text-accent" />}
                       </div>
                     </td>
-                    <td className={`p-3 font-mono text-right ${isBest ? 'text-accent font-bold' : ''}`}>
-                      {formatTimeShort(lap.lapTime)}
+                    <td className="p-2">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: lane?.color }}
+                        />
+                        <span className="text-xs" style={{ color: lane?.color }}>
+                          {lane?.name || `Lane ${lap.laneId + 1}`}
+                        </span>
+                      </div>
                     </td>
-                    <td className="p-3 font-mono text-right text-muted-foreground">
-                      {formatTimeShort(lap.relativeTime)}
+                    <td className={`p-2 font-mono text-right ${isBest ? 'font-bold' : ''}`} style={isBest ? { color: lane?.color } : undefined}>
+                      {formatTimeShort(lap.lapTime)}
                     </td>
                   </tr>
                 );
