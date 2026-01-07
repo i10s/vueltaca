@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Camera, AlertCircle, Timer, Maximize, Minimize, Volume2, VolumeX, Sun } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Camera, AlertCircle, Timer, Maximize, Minimize, Volume2, VolumeX, Mic, MicOff, History } from 'lucide-react';
 import { useCamera } from '@/hooks/useCamera';
 import { useLapTimer, BestLapEvent } from '@/hooks/useLapTimer';
 import { useAudioFeedback } from '@/hooks/useAudioFeedback';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import { useRaceSessions } from '@/hooks/useRaceSessions';
+import { useVoiceAnnouncer } from '@/hooks/useVoiceAnnouncer';
 import { CameraView } from '@/components/CameraView';
 import { TimerDisplay } from '@/components/TimerDisplay';
 import { ControlPanel } from '@/components/ControlPanel';
@@ -13,6 +15,11 @@ import { DetectionSettings } from '@/components/DetectionSettings';
 import { LapList } from '@/components/LapList';
 import { CountdownOverlay } from '@/components/CountdownOverlay';
 import { BestLapCelebration } from '@/components/BestLapCelebration';
+import { RaceLeaderboard } from '@/components/RaceLeaderboard';
+import { LapChart } from '@/components/LapChart';
+import { RaceModeSettings } from '@/components/RaceModeSettings';
+import { ShareResults } from '@/components/ShareResults';
+import { LaneCustomizer } from '@/components/LaneCustomizer';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -21,6 +28,7 @@ import {
 } from '@/components/ui/tooltip';
 
 const Index = () => {
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -56,6 +64,7 @@ const Index = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showCountdown, setShowCountdown] = useState(false);
   const [bestLapCelebration, setBestLapCelebration] = useState<BestLapEvent | null>(null);
+  const [raceWinner, setRaceWinner] = useState<{ laneId: number; laneName: string } | null>(null);
   
   const { 
     playLapSound, 
@@ -64,6 +73,8 @@ const Index = () => {
     playCountdownGo,
     playStopSound,
   } = useAudioFeedback({ soundEnabled, vibrationEnabled: true });
+  
+  const { announceLap, announceBestLap, announceWinner } = useVoiceAnnouncer({ enabled: config.voiceEnabled });
   
   const { isActive: wakeLockActive, request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
   const { isFullscreen, isSupported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen(containerRef);
@@ -83,17 +94,31 @@ const Index = () => {
   // Set up lap detection callbacks
   useEffect(() => {
     onLapDetected.current = (laneId: number, isBestLap: boolean) => {
+      const lane = lanes[laneId];
+      const laneState = state.lanes[laneId];
+      const lapCount = laneState?.laps.length || 0;
+      const lastLap = laneState?.laps[lapCount - 1];
+      
       if (isBestLap) {
         playBestLapSound();
+        if (lastLap) announceBestLap(lane?.name || `Lane ${laneId + 1}`, lastLap.lapTime);
       } else {
         playLapSound();
+        if (lastLap) announceLap(lane?.name || `Lane ${laneId + 1}`, lapCount, lastLap.lapTime);
+      }
+      
+      // Check for race win in laps mode
+      if (config.raceMode === 'laps' && lapCount >= config.targetLaps) {
+        setRaceWinner({ laneId, laneName: lane?.name || `Lane ${laneId + 1}` });
+        announceWinner(lane?.name || `Lane ${laneId + 1}`, lapCount);
+        handleStop();
       }
     };
     
     onBestLap.current = (event: BestLapEvent) => {
       setBestLapCelebration(event);
     };
-  }, [onLapDetected, onBestLap, playLapSound, playBestLapSound]);
+  }, [onLapDetected, onBestLap, playLapSound, playBestLapSound, lanes, state.lanes, config, announceLap, announceBestLap, announceWinner]);
 
   // Wake lock management
   useEffect(() => {
@@ -314,8 +339,13 @@ const Index = () => {
           bg-card overflow-hidden
         `}
       >
-        {/* Timer Stats */}
-        <div className="p-4">
+        {/* Timer Stats & Leaderboard */}
+        <div className="p-4 space-y-3">
+          <RaceLeaderboard
+            lanes={lanes.slice(0, config.laneCount)}
+            laneStates={state.lanes}
+            isRunning={state.isRunning}
+          />
           <TimerDisplay
             lanes={lanes.slice(0, config.laneCount)}
             laneStates={state.lanes}
@@ -323,8 +353,21 @@ const Index = () => {
           />
         </div>
 
-        {/* Detection Settings */}
-        <div className="px-4 pb-4">
+        {/* Lap Chart */}
+        <div className="px-4 pb-3">
+          <LapChart
+            lanes={lanes.slice(0, config.laneCount)}
+            laneStates={state.lanes}
+          />
+        </div>
+
+        {/* Race Mode & Detection Settings */}
+        <div className="px-4 pb-4 space-y-4">
+          <RaceModeSettings
+            config={config}
+            onChange={setConfig}
+            isRunning={state.isRunning}
+          />
           <DetectionSettings
             config={config}
             lanes={lanes.slice(0, config.laneCount)}
@@ -338,12 +381,21 @@ const Index = () => {
           />
         </div>
 
-        {/* Lap History */}
-        <div className="flex-1 px-4 pb-4 min-h-0">
-          <LapList 
-            laps={getAllLaps()} 
-            lanes={lanes} 
-          />
+        {/* Lap History with Share */}
+        <div className="flex-1 px-4 pb-4 min-h-0 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/history')} className="gap-1.5">
+              <History className="w-4 h-4" />
+              History
+            </Button>
+            <ShareResults laps={getAllLaps()} lanes={lanes} />
+          </div>
+          <div className="flex-1 min-h-0">
+            <LapList 
+              laps={getAllLaps()} 
+              lanes={lanes} 
+            />
+          </div>
         </div>
       </aside>
     </div>

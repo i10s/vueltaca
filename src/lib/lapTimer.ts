@@ -27,6 +27,11 @@ export interface TimerConfig {
   smoothing: number;
   debugMode: boolean;
   laneCount: number;
+  // Race mode settings
+  raceMode: 'free' | 'laps' | 'time';
+  targetLaps: number;
+  targetTime: number; // in seconds
+  voiceEnabled: boolean;
 }
 
 export interface LaneState {
@@ -101,6 +106,10 @@ const DEFAULT_CONFIG: TimerConfig = {
   smoothing: 3,
   debugMode: false,
   laneCount: 2,
+  raceMode: 'free',
+  targetLaps: 10,
+  targetTime: 300,
+  voiceEnabled: false,
 };
 
 export function loadConfig(): { lanes: LaneConfig[]; timer: TimerConfig } {
