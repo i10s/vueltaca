@@ -41,6 +41,7 @@ interface UseLapTimerReturn {
   processFrame: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
   getAllLaps: () => LapData[];
   getLaneState: (laneId: number) => LaneState;
+  restoreState: (laneStates: LaneState[], startTime: number) => void;
 }
 
 export function useLapTimer(): UseLapTimerReturn {
@@ -296,6 +297,31 @@ export function useLapTimer(): UseLapTimerReturn {
     return laneStatesRef.current[laneId] || createEmptyLaneState();
   }, []);
 
+  // Restore state from recovery
+  const restoreState = useCallback((laneStates: LaneState[], startTime: number) => {
+    const now = performance.now();
+    const elapsed = now - startTime;
+    
+    isRunningRef.current = true;
+    startTimeRef.current = now - elapsed; // Adjust start time to account for elapsed time
+    
+    laneStatesRef.current = laneStates.map(ls => ({
+      ...ls,
+      isRunning: true,
+      startTime: now - elapsed,
+      lastLapTime: ls.lastLapTime ? now - elapsed + (ls.lastLapTime - startTime) : now,
+      prevLuma: null,
+      smoothingBuffer: [],
+      lastTriggerTime: 0,
+    }));
+    
+    setState({
+      isRunning: true,
+      startTime: startTimeRef.current,
+      lanes: laneStatesRef.current,
+    });
+  }, []);
+
   return {
     state,
     lanes,
@@ -314,5 +340,6 @@ export function useLapTimer(): UseLapTimerReturn {
     processFrame,
     getAllLaps,
     getLaneState,
+    restoreState,
   };
 }

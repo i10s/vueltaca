@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sliders, Zap, Bug, Layers } from 'lucide-react';
 import { TimerConfig, LaneConfig, LANE_COLORS } from '@/lib/lapTimer';
+import { LaneCustomizer } from './LaneCustomizer';
 
 interface DetectionSettingsProps {
   config: TimerConfig;
@@ -9,6 +10,7 @@ interface DetectionSettingsProps {
   onChange: (config: Partial<TimerConfig>) => void;
   onSelectLane: (laneId: number) => void;
   onToggleLane: (laneId: number, enabled: boolean) => void;
+  onUpdateLane: (laneId: number, updates: Partial<LaneConfig>) => void;
   onCalibrate: () => void;
   isCalibrating: boolean;
   diffScores: number[];
@@ -21,6 +23,7 @@ export function DetectionSettings({
   onChange,
   onSelectLane,
   onToggleLane,
+  onUpdateLane,
   onCalibrate,
   isCalibrating,
   diffScores,
@@ -99,22 +102,43 @@ export function DetectionSettings({
         </div>
       </div>
 
-      {/* Lane Enable Toggle */}
-      <div className="flex items-center justify-between bg-muted rounded-lg px-3 py-2">
-        <span className="text-xs text-muted-foreground">Lane {selectedLane + 1} Enabled</span>
-        <button
-          onClick={() => onToggleLane(selectedLane, !lanes[selectedLane]?.enabled)}
-          className={`w-10 h-5 rounded-full transition-colors ${
-            lanes[selectedLane]?.enabled ? 'bg-accent' : 'bg-secondary'
-          }`}
-        >
-          <div 
-            className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${
-              lanes[selectedLane]?.enabled ? 'translate-x-5' : 'translate-x-0.5'
-            }`}
-          />
-        </button>
-      </div>
+      {/* Selected Lane Settings */}
+      {lanes[selectedLane] && (
+        <div className="space-y-2 bg-muted rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: lanes[selectedLane].color }}
+              />
+              <span 
+                className="font-racing text-sm"
+                style={{ color: lanes[selectedLane].color }}
+              >
+                {lanes[selectedLane].name}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <LaneCustomizer
+                lane={lanes[selectedLane]}
+                onUpdate={(updates) => onUpdateLane(selectedLane, updates)}
+              />
+              <button
+                onClick={() => onToggleLane(selectedLane, !lanes[selectedLane]?.enabled)}
+                className={`w-10 h-5 rounded-full transition-colors ${
+                  lanes[selectedLane]?.enabled ? 'bg-accent' : 'bg-secondary'
+                }`}
+              >
+                <div 
+                  className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    lanes[selectedLane]?.enabled ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Score Display */}
       <div className="grid grid-cols-2 gap-2">

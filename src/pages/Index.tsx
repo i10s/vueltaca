@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, AlertCircle, Timer, Maximize, Minimize, Volume2, VolumeX, Mic, MicOff, History } from 'lucide-react';
+import { Camera, AlertCircle, Timer, Maximize, Minimize, Volume2, VolumeX, History, BarChart3 } from 'lucide-react';
 import { useCamera } from '@/hooks/useCamera';
 import { useLapTimer, BestLapEvent } from '@/hooks/useLapTimer';
 import { useAudioFeedback } from '@/hooks/useAudioFeedback';
@@ -8,6 +8,7 @@ import { useWakeLock } from '@/hooks/useWakeLock';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import { useRaceSessions } from '@/hooks/useRaceSessions';
 import { useVoiceAnnouncer } from '@/hooks/useVoiceAnnouncer';
+import { useAutoRecovery } from '@/hooks/useAutoRecovery';
 import { CameraView } from '@/components/CameraView';
 import { TimerDisplay } from '@/components/TimerDisplay';
 import { ControlPanel } from '@/components/ControlPanel';
@@ -20,6 +21,7 @@ import { LapChart } from '@/components/LapChart';
 import { RaceModeSettings } from '@/components/RaceModeSettings';
 import { ShareResults } from '@/components/ShareResults';
 import { LaneCustomizer } from '@/components/LaneCustomizer';
+import { RecoveryDialog } from '@/components/RecoveryDialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -58,6 +60,7 @@ const Index = () => {
     startCalibration,
     processFrame,
     getAllLaps,
+    restoreState,
   } = useLapTimer();
 
   const [showSettings, setShowSettings] = useState(false);
@@ -80,6 +83,13 @@ const Index = () => {
   const { isActive: wakeLockActive, request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
   const { isFullscreen, isSupported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen(containerRef);
   const { saveSession } = useRaceSessions();
+  const { 
+    pendingRecovery, 
+    startAutoSave, 
+    stopAutoSave, 
+    dismissRecovery, 
+    acceptRecovery 
+  } = useAutoRecovery();
   
   const startTimeRef = useRef<number | null>(null);
 
@@ -130,6 +140,30 @@ const Index = () => {
     }
   }, [state.isRunning, wakeLockActive, requestWakeLock, releaseWakeLock]);
 
+  // Auto-save state while racing
+  useEffect(() => {
+    if (state.isRunning) {
+      startAutoSave(() => ({
+        isRunning: state.isRunning,
+        startTime: startTimeRef.current,
+        laneStates: state.lanes,
+        lanes,
+        config,
+      }));
+    } else {
+      stopAutoSave();
+    }
+  }, [state.isRunning, state.lanes, lanes, config, startAutoSave, stopAutoSave]);
+
+  // Handle recovery acceptance
+  const handleAcceptRecovery = useCallback(() => {
+    const recovery = acceptRecovery();
+    if (recovery) {
+      restoreState(recovery.laneStates, recovery.startTime);
+      startTimeRef.current = performance.now() - recovery.elapsedTime;
+    }
+  }, [acceptRecovery, restoreState]);
+
   // Handle start with countdown
   const handleStartWithCountdown = useCallback(() => {
     setShowCountdown(true);
@@ -169,6 +203,15 @@ const Index = () => {
 
   return (
     <div ref={containerRef} className="h-full flex flex-col lg:flex-row bg-background">
+      {/* Recovery Dialog */}
+      {pendingRecovery && (
+        <RecoveryDialog
+          recovery={pendingRecovery}
+          onAccept={handleAcceptRecovery}
+          onDismiss={dismissRecovery}
+        />
+      )}
+      
       {/* Countdown Overlay */}
       {showCountdown && (
         <CountdownOverlay
@@ -366,6 +409,7 @@ const Index = () => {
               onChange={setConfig}
               onSelectLane={setSelectedLane}
               onToggleLane={handleToggleLane}
+              onUpdateLane={updateLane}
               onCalibrate={startCalibration}
               isCalibrating={isCalibrating}
               diffScores={diffScores}
@@ -374,10 +418,16 @@ const Index = () => {
             {/* Lap History with Share */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/history')} className="gap-1.5">
-                  <History className="w-4 h-4" />
-                  History
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/history')} className="gap-1.5">
+                    <History className="w-4 h-4" />
+                    History
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/statistics')} className="gap-1.5">
+                    <BarChart3 className="w-4 h-4" />
+                    Stats
+                  </Button>
+                </div>
                 <ShareResults laps={getAllLaps()} lanes={lanes} />
               </div>
               <LapList 
