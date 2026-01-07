@@ -1,30 +1,48 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp } from 'lucide-react';
-import { LaneConfig, LaneState, formatTimeShort } from '@/lib/lapTimer';
+import { LaneConfig, LaneState, formatTimeShort, isOutlier } from '@/lib/lapTimer';
 
 interface LapChartProps {
   lanes: LaneConfig[];
   laneStates: LaneState[];
 }
 
-export function LapChart({ lanes, laneStates }: LapChartProps) {
+export const LapChart = memo(function LapChart({ lanes, laneStates }: LapChartProps) {
+  // Pre-calculate all lap times per lane for outlier detection
+  const laneAllTimes = useMemo(() => {
+    const result: Map<number, number[]> = new Map();
+    lanes.forEach(lane => {
+      if (!lane.enabled) return;
+      const state = laneStates[lane.id];
+      if (state) {
+        result.set(lane.id, state.laps.map(l => l.lapTime));
+      }
+    });
+    return result;
+  }, [lanes, laneStates]);
+
   const chartData = useMemo(() => {
-    // Find max lap count
     const maxLaps = Math.max(...laneStates.map(s => s.laps.length), 0);
     if (maxLaps === 0) return [];
 
-    // Build data points
-    const data: Array<{ lap: number; [key: string]: number }> = [];
+    const data: Array<{ lap: number; [key: string]: number | null }> = [];
     
     for (let i = 0; i < maxLaps; i++) {
-      const point: { lap: number; [key: string]: number } = { lap: i + 1 };
+      const point: { lap: number; [key: string]: number | null } = { lap: i + 1 };
       
       lanes.forEach((lane) => {
         if (!lane.enabled) return;
         const state = laneStates[lane.id];
-        if (state?.laps[i]) {
-          point[lane.name] = state.laps[i].lapTime / 1000; // Convert to seconds
+        const lap = state?.laps[i];
+        if (lap) {
+          const allTimes = laneAllTimes.get(lane.id) || [];
+          // Filter outliers - don't show in chart
+          if (!isOutlier(lap.lapTime, allTimes)) {
+            point[lane.name] = lap.lapTime / 1000;
+          } else {
+            point[lane.name] = null; // Will be skipped with connectNulls
+          }
         }
       });
       
@@ -32,18 +50,21 @@ export function LapChart({ lanes, laneStates }: LapChartProps) {
     }
     
     return data;
-  }, [lanes, laneStates]);
+  }, [lanes, laneStates, laneAllTimes]);
 
-  // Calculate best lap for reference line
+  // Calculate best lap excluding outliers
   const bestLapTime = useMemo(() => {
     let best = Infinity;
-    laneStates.forEach(state => {
+    laneStates.forEach((state, laneId) => {
+      const allTimes = laneAllTimes.get(laneId) || [];
       state.laps.forEach(lap => {
-        if (lap.lapTime < best) best = lap.lapTime;
+        if (!isOutlier(lap.lapTime, allTimes) && lap.lapTime < best) {
+          best = lap.lapTime;
+        }
       });
     });
     return best === Infinity ? null : best / 1000;
-  }, [laneStates]);
+  }, [laneStates, laneAllTimes]);
 
   const enabledLanes = lanes.filter(l => l.enabled);
   const hasData = chartData.length > 0;
@@ -146,4 +167,4 @@ export function LapChart({ lanes, laneStates }: LapChartProps) {
       </div>
     </div>
   );
-}
+});

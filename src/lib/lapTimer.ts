@@ -317,3 +317,21 @@ export function calibrateThreshold(samples: number[]): number {
   const stdDev = Math.sqrt(variance);
   return Math.round(Math.max(5, Math.min(100, mean + 3 * stdDev)));
 }
+
+// Outlier detection using IQR method - returns true if value is an outlier
+export function isOutlier(value: number, allValues: number[]): boolean {
+  if (allValues.length < 4) return false; // Need enough data
+  
+  const sorted = [...allValues].sort((a, b) => a - b);
+  const q1Index = Math.floor(sorted.length * 0.25);
+  const q3Index = Math.floor(sorted.length * 0.75);
+  const q1 = sorted[q1Index];
+  const q3 = sorted[q3Index];
+  const iqr = q3 - q1;
+  
+  // Use 2x IQR for more aggressive filtering (standard is 1.5x)
+  const lowerBound = q1 - 2 * iqr;
+  const upperBound = q3 + 2 * iqr;
+  
+  return value < lowerBound || value > upperBound;
+}
