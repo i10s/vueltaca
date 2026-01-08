@@ -75,7 +75,7 @@
 ## 🚀 Quick Start
 
 ### Option 1: Use the Live App
-Visit **[laptimer.lovable.app](https://laptimer.lovable.app)** and start timing!
+Visit **[https://vueltaca.ifuentes.net/](https://vueltaca.ifuentes.net/))** and start timing!
 
 ### Option 2: Run Locally
 
