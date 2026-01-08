@@ -81,10 +81,10 @@ Visit **[laptimer.lovable.app](https://laptimer.lovable.app)** and start timing!
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/scalextric-lap-timer.git
+git clone https://github.com/i10s/vueltaca.git
 
 # Navigate to the project
-cd scalextric-lap-timer
+cd vueltaca
 
 # Install dependencies
 npm install
