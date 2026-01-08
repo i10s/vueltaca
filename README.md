@@ -9,7 +9,7 @@
 
 **A camera-based lap timing system for Scalextric and slot car racing**
 
-[Live Demo](https://laptimer.lovable.app) · [Report Bug](https://github.com/yourusername/laptimer/issues) · [Request Feature](https://github.com/yourusername/laptimer/issues)
+[Live Demo](https://vueltaca.ifuentes.net/) · [Report Bug](https://github.com/i10s/vueltaca/issues) · [Request Feature](https://github.com/i10s/vueltaca/issues)
 
 </div>
 
